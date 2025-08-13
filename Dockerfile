@@ -1,7 +1,5 @@
 FROM node:18-alpine
 
-WORKDIR /app
-
 # Install dependencies for Firecrawl
 RUN apk add --no-cache \
     chromium \
@@ -20,30 +18,28 @@ RUN apk add --no-cache \
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
-# Clone Firecrawl repository
-RUN git clone https://github.com/mendableai/firecrawl.git /tmp/firecrawl && \
-    cp -r /tmp/firecrawl/* . && \
-    rm -rf /tmp/firecrawl
+# Clone and setup Firecrawl
+WORKDIR /firecrawl
+RUN git clone https://github.com/mendableai/firecrawl.git . && \
+    ls -la
 
-# Check if package.json exists in apps/api directory (Firecrawl's structure)
-RUN if [ -f "apps/api/package.json" ]; then \
-        cd apps/api && npm install; \
-    elif [ -f "package.json" ]; then \
-        npm install; \
-    else \
-        echo "No package.json found"; \
-    fi
+# Navigate to the API directory where the actual application is
+WORKDIR /firecrawl/apps/api
 
-# Copy custom files
-COPY gemini-adapter.js /app/
-COPY package.json /app/package-custom.json
+# Install dependencies
+RUN npm install
+
+# Install additional packages for Gemini support
+RUN npm install @google/generative-ai dotenv
+
+# Copy custom Gemini adapter
+COPY gemini-adapter.js /firecrawl/apps/api/src/lib/
+
+# Set working directory for runtime
+WORKDIR /firecrawl/apps/api
 
 # Expose ports
-EXPOSE 3000 3001
+EXPOSE 3002
 
-# Start the application
-CMD if [ -f "apps/api/package.json" ]; then \
-        cd apps/api && npm start; \
-    else \
-        npm start; \
-    fi
+# Start the application with proper command
+CMD ["npm", "run", "start:production"]
