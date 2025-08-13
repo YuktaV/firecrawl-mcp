@@ -47,6 +47,7 @@ RUN npm install
 # Copy application files
 COPY simple-server.js ./
 COPY .env.example .env
+COPY public ./public
 
 # Expose port
 EXPOSE 3002

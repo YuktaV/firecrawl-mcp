@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firecrawl Web Scraper</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input[type="url"] {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="url"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: none;
+            color: #64748b;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            position: relative;
+        }
+
+        .tab.active {
+            color: #667eea;
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #667eea;
+        }
+
+        .result-section {
+            display: none;
+        }
+
+        .result-section.active {
+            display: block;
+        }
+
+        .result-content {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .metadata {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .metadata-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .metadata-label {
+            font-size: 12px;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .metadata-value {
+            font-size: 14px;
+            color: #1e293b;
+            font-weight: 500;
+        }
+
+        .loader {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loader.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fee;
+            color: #c00;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .success {
+            background: #efe;
+            color: #060;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .copy-btn {
+            padding: 8px 16px;
+            background: #64748b;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .examples {
+            margin-top: 20px;
+        }
+
+        .example-links {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .example-link {
+            padding: 8px 16px;
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .example-link:hover {
+            background: #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔥 Firecrawl Web Scraper</h1>
+            <p>Extract clean, structured content from any website</p>
+        </div>
+
+        <div class="card">
+            <div class="input-group">
+                <input type="url" id="urlInput" placeholder="Enter URL to scrape (e.g., https://example.com)" value="">
+                <button id="scrapeBtn" onclick="scrapeUrl()">Scrape</button>
+            </div>
+
+            <div class="examples">
+                <p style="color: #64748b; margin-bottom: 10px;">Try these examples:</p>
+                <div class="example-links">
+                    <button class="example-link" onclick="setExample('https://news.ycombinator.com')">Hacker News</button>
+                    <button class="example-link" onclick="setExample('https://www.wikipedia.org')">Wikipedia</button>
+                    <button class="example-link" onclick="setExample('https://www.dinamalar.com')">Dinamalar</button>
+                    <button class="example-link" onclick="setExample('https://github.com')">GitHub</button>
+                    <button class="example-link" onclick="setExample('https://www.bbc.com/news')">BBC News</button>
+                </div>
+            </div>
+
+            <div class="loader" id="loader">
+                <div class="spinner"></div>
+                <p style="margin-top: 10px; color: #64748b;">Scraping content...</p>
+            </div>
+
+            <div id="errorMsg"></div>
+            <div id="successMsg"></div>
+        </div>
+
+        <div class="card" id="resultCard" style="display: none;">
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('metadata')">Metadata</button>
+                <button class="tab" onclick="showTab('markdown')">Markdown</button>
+                <button class="tab" onclick="showTab('raw')">Raw JSON</button>
+            </div>
+
+            <div class="result-section active" id="metadata-section">
+                <div class="metadata" id="metadataContent"></div>
+            </div>
+
+            <div class="result-section" id="markdown-section">
+                <button class="copy-btn" onclick="copyContent('markdown')">Copy Markdown</button>
+                <div class="result-content">
+                    <pre id="markdownContent"></pre>
+                </div>
+            </div>
+
+            <div class="result-section" id="raw-section">
+                <button class="copy-btn" onclick="copyContent('raw')">Copy JSON</button>
+                <div class="result-content">
+                    <pre id="rawContent"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentData = null;
+
+        function setExample(url) {
+            document.getElementById('urlInput').value = url;
+        }
+
+        function showTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update sections
+            document.querySelectorAll('.result-section').forEach(s => s.classList.remove('active'));
+            document.getElementById(`${tab}-section`).classList.add('active');
+        }
+
+        async function scrapeUrl() {
+            const urlInput = document.getElementById('urlInput');
+            const url = urlInput.value.trim();
+
+            if (!url) {
+                showError('Please enter a URL');
+                return;
+            }
+
+            // Validate URL
+            try {
+                new URL(url);
+            } catch {
+                showError('Please enter a valid URL');
+                return;
+            }
+
+            // Clear previous messages
+            document.getElementById('errorMsg').innerHTML = '';
+            document.getElementById('successMsg').innerHTML = '';
+            document.getElementById('resultCard').style.display = 'none';
+
+            // Show loader
+            document.getElementById('loader').classList.add('active');
+            document.getElementById('scrapeBtn').disabled = true;
+
+            try {
+                const response = await fetch('/v0/scrape', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url })
+                });
+
+                const data = await response.json();
+                currentData = data;
+
+                if (data.success) {
+                    showSuccess('Content scraped successfully!');
+                    displayResults(data.data);
+                } else {
+                    showError(data.error || 'Failed to scrape URL');
+                }
+            } catch (error) {
+                showError('Network error: ' + error.message);
+            } finally {
+                document.getElementById('loader').classList.remove('active');
+                document.getElementById('scrapeBtn').disabled = false;
+            }
+        }
+
+        function displayResults(data) {
+            // Show result card
+            document.getElementById('resultCard').style.display = 'block';
+
+            // Display metadata
+            const metadataHtml = `
+                <div class="metadata-item">
+                    <div class="metadata-label">URL</div>
+                    <div class="metadata-value">${data.url || 'N/A'}</div>
+                </div>
+                <div class="metadata-item">
+                    <div class="metadata-label">Title</div>
+                    <div class="metadata-value">${data.title || 'N/A'}</div>
+                </div>
+                <div class="metadata-item">
+                    <div class="metadata-label">Description</div>
+                    <div class="metadata-value">${data.description || 'N/A'}</div>
+                </div>
+                <div class="metadata-item">
+                    <div class="metadata-label">Content Length</div>
+                    <div class="metadata-value">${data.markdown ? data.markdown.length + ' characters' : 'N/A'}</div>
+                </div>
+            `;
+            document.getElementById('metadataContent').innerHTML = metadataHtml;
+
+            // Display markdown
+            document.getElementById('markdownContent').textContent = data.markdown || 'No content available';
+
+            // Display raw JSON
+            document.getElementById('rawContent').textContent = JSON.stringify(currentData, null, 2);
+        }
+
+        function copyContent(type) {
+            let content = '';
+            if (type === 'markdown' && currentData?.data?.markdown) {
+                content = currentData.data.markdown;
+            } else if (type === 'raw') {
+                content = JSON.stringify(currentData, null, 2);
+            }
+
+            navigator.clipboard.writeText(content).then(() => {
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            });
+        }
+
+        function showError(message) {
+            document.getElementById('errorMsg').innerHTML = `<div class="error">${message}</div>`;
+        }
+
+        function showSuccess(message) {
+            document.getElementById('successMsg').innerHTML = `<div class="success">${message}</div>`;
+        }
+
+        // Allow Enter key to trigger scraping
+        document.getElementById('urlInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                scrapeUrl();
+            }
+        });
+    </script>
+</body>
+</html>

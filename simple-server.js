@@ -6,6 +6,9 @@ require('dotenv').config();
 const app = express();
 app.use(express.json());
 
+// Serve static files from public directory
+app.use(express.static('public'));
+
 const PORT = process.env.PORT || 3002;
 const HOST = process.env.HOST || '0.0.0.0';
 
