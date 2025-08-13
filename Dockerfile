@@ -11,23 +11,39 @@ RUN apk add --no-cache \
     harfbuzz \
     ca-certificates \
     ttf-freefont \
-    git
+    git \
+    python3 \
+    make \
+    g++
 
 # Set Puppeteer to use installed Chromium
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 # Clone Firecrawl repository
-RUN git clone https://github.com/mendableai/firecrawl.git .
+RUN git clone https://github.com/mendableai/firecrawl.git /tmp/firecrawl && \
+    cp -r /tmp/firecrawl/* . && \
+    rm -rf /tmp/firecrawl
 
-# Install dependencies
-RUN npm install
+# Check if package.json exists in apps/api directory (Firecrawl's structure)
+RUN if [ -f "apps/api/package.json" ]; then \
+        cd apps/api && npm install; \
+    elif [ -f "package.json" ]; then \
+        npm install; \
+    else \
+        echo "No package.json found"; \
+    fi
 
-# Copy custom Gemini adapter
-COPY gemini-adapter.js /app/lib/llm/
+# Copy custom files
+COPY gemini-adapter.js /app/
+COPY package.json /app/package-custom.json
 
 # Expose ports
 EXPOSE 3000 3001
 
 # Start the application
-CMD ["npm", "start"]
+CMD if [ -f "apps/api/package.json" ]; then \
+        cd apps/api && npm start; \
+    else \
+        npm start; \
+    fi
