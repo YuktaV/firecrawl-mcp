@@ -300,9 +300,14 @@
             <div class="examples">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                     <p style="color: #64748b; margin: 0;">Try these examples:</p>
-                    <button onclick="openVisualPicker()" style="padding: 8px 16px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: 600;">
-                        🎯 Visual Picker
-                    </button>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="openSelectorHelper()" style="padding: 8px 16px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: 600;">
+                            🔧 Selector Helper
+                        </button>
+                        <button onclick="openVisualPicker()" style="padding: 8px 16px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: 600;">
+                            🎯 Visual Picker
+                        </button>
+                    </div>
                 </div>
                 <div class="example-links">
                     <button class="example-link" onclick="setExample('https://news.ycombinator.com')">Hacker News</button>
@@ -354,6 +359,15 @@
 
         function setExample(url) {
             document.getElementById('urlInput').value = url;
+        }
+
+        function openSelectorHelper() {
+            const currentUrl = document.getElementById('urlInput').value.trim();
+            if (currentUrl) {
+                window.open(`/selector-helper.html?url=${encodeURIComponent(currentUrl)}`, '_blank');
+            } else {
+                window.open('/selector-helper.html', '_blank');
+            }
         }
 
         function openVisualPicker() {

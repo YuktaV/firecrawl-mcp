@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS Selector Helper - Firecrawl</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .selector-builder {
+            display: grid;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            display: grid;
+            grid-template-columns: 150px 1fr auto;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .input-group label {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .input-group input, .input-group select {
+            padding: 10px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .input-group button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .generated-selector {
+            background: #f8fafc;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .selector-display {
+            font-family: 'Monaco', monospace;
+            font-size: 18px;
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .example-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .example-title {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 10px;
+        }
+
+        .example-selector {
+            font-family: 'Monaco', monospace;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            font-size: 14px;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+
+        .example-selector:hover {
+            background: #f3f4f6;
+        }
+
+        .example-description {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .test-section {
+            background: #fef7cd;
+            border: 2px solid #f59e0b;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .test-button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        .copy-btn {
+            background: #64748b;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 CSS Selector Helper</h1>
+            <p>Build CSS selectors step by step for precise content extraction</p>
+        </div>
+
+        <div class="card">
+            <div class="selector-builder">
+                <div class="input-group">
+                    <label>Element Type:</label>
+                    <select id="elementType" onchange="updateSelector()">
+                        <option value="">Any element</option>
+                        <option value="h1">Heading 1 (h1)</option>
+                        <option value="h2">Heading 2 (h2)</option>
+                        <option value="h3">Heading 3 (h3)</option>
+                        <option value="p">Paragraph (p)</option>
+                        <option value="div">Division (div)</option>
+                        <option value="span">Span (span)</option>
+                        <option value="a">Link (a)</option>
+                        <option value="img">Image (img)</option>
+                        <option value="ul">List (ul)</option>
+                        <option value="li">List item (li)</option>
+                        <option value="table">Table (table)</option>
+                        <option value="tr">Table row (tr)</option>
+                        <option value="td">Table cell (td)</option>
+                        <option value="article">Article (article)</option>
+                        <option value="section">Section (section)</option>
+                    </select>
+                    <button onclick="clearField('elementType')">Clear</button>
+                </div>
+
+                <div class="input-group">
+                    <label>Class Name:</label>
+                    <input type="text" id="className" placeholder="e.g., news-title, post-content" onkeyup="updateSelector()">
+                    <button onclick="clearField('className')">Clear</button>
+                </div>
+
+                <div class="input-group">
+                    <label>ID:</label>
+                    <input type="text" id="elementId" placeholder="e.g., main-content, header" onkeyup="updateSelector()">
+                    <button onclick="clearField('elementId')">Clear</button>
+                </div>
+
+                <div class="input-group">
+                    <label>Attribute:</label>
+                    <input type="text" id="attribute" placeholder="e.g., href, data-testid" onkeyup="updateSelector()">
+                    <button onclick="clearField('attribute')">Clear</button>
+                </div>
+
+                <div class="input-group">
+                    <label>Attribute Value:</label>
+                    <input type="text" id="attributeValue" placeholder="e.g., /news/, external-link" onkeyup="updateSelector()">
+                    <button onclick="clearField('attributeValue')">Clear</button>
+                </div>
+
+                <div class="input-group">
+                    <label>Parent Element:</label>
+                    <input type="text" id="parent" placeholder="e.g., nav, .sidebar, #content" onkeyup="updateSelector()">
+                    <button onclick="clearField('parent')">Clear</button>
+                </div>
+            </div>
+
+            <div class="generated-selector">
+                <h3>Generated CSS Selector:</h3>
+                <div class="selector-display" id="generatedSelector">Start building your selector above</div>
+                <button class="copy-btn" onclick="copySelector()">Copy Selector</button>
+            </div>
+
+            <div class="test-section">
+                <h3>Test Your Selector:</h3>
+                <div class="input-group" style="grid-template-columns: 1fr auto;">
+                    <input type="url" id="testUrl" placeholder="Enter URL to test the selector on">
+                    <button class="test-button" onclick="testSelector()">Test & Use Selector</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 style="margin-bottom: 20px;">Common Selector Examples</h2>
+            <div class="examples-grid" id="examples"></div>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <button onclick="goBack()" style="padding: 15px 30px; background: white; color: #667eea; border: 2px solid #667eea; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: 600;">
+                ← Back to Scraper
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const examples = [
+            {
+                title: "News Headlines",
+                selectors: [
+                    { selector: "h1, h2, h3", description: "All headings" },
+                    { selector: ".headline", description: "Elements with headline class" },
+                    { selector: "a[href*='/news/']", description: "Links containing '/news/'" },
+                    { selector: ".post-title a", description: "Links inside post-title class" }
+                ]
+            },
+            {
+                title: "Article Content",
+                selectors: [
+                    { selector: "article", description: "Article elements" },
+                    { selector: ".post-content", description: "Post content class" },
+                    { selector: ".entry-content p", description: "Paragraphs in entry content" },
+                    { selector: "div[role='main']", description: "Main content area" }
+                ]
+            },
+            {
+                title: "Navigation & Links",
+                selectors: [
+                    { selector: "nav a", description: "All navigation links" },
+                    { selector: ".menu li a", description: "Menu item links" },
+                    { selector: "a[href^='https://']", description: "External links" },
+                    { selector: "a.external", description: "Links with external class" }
+                ]
+            },
+            {
+                title: "Images & Media",
+                selectors: [
+                    { selector: "img", description: "All images" },
+                    { selector: ".gallery img", description: "Images in gallery" },
+                    { selector: "img[alt]", description: "Images with alt text" },
+                    { selector: "video, iframe", description: "Videos and iframes" }
+                ]
+            },
+            {
+                title: "Data & Tables",
+                selectors: [
+                    { selector: "table tr", description: "All table rows" },
+                    { selector: ".data-table td", description: "Table cells in data table" },
+                    { selector: "li", description: "All list items" },
+                    { selector: ".price", description: "Price elements" }
+                ]
+            },
+            {
+                title: "Dynamic Content",
+                selectors: [
+                    { selector: "[data-testid]", description: "Test ID attributes" },
+                    { selector: ".loading", description: "Loading indicators" },
+                    { selector: "[aria-label]", description: "Accessible labels" },
+                    { selector: ".react-component", description: "React components" }
+                ]
+            }
+        ];
+
+        function updateSelector() {
+            const elementType = document.getElementById('elementType').value;
+            const className = document.getElementById('className').value.trim();
+            const elementId = document.getElementById('elementId').value.trim();
+            const attribute = document.getElementById('attribute').value.trim();
+            const attributeValue = document.getElementById('attributeValue').value.trim();
+            const parent = document.getElementById('parent').value.trim();
+
+            let selector = '';
+
+            // Start with parent if provided
+            if (parent) {
+                selector = parent + ' ';
+            }
+
+            // Add element type
+            if (elementType) {
+                selector += elementType;
+            }
+
+            // Add ID
+            if (elementId) {
+                selector += '#' + elementId;
+            }
+
+            // Add class
+            if (className) {
+                // Handle multiple classes
+                const classes = className.split(' ').filter(c => c.trim());
+                selector += classes.map(c => '.' + c.trim()).join('');
+            }
+
+            // Add attribute
+            if (attribute) {
+                if (attributeValue) {
+                    if (attributeValue.includes('*')) {
+                        selector += `[${attribute}*="${attributeValue.replace('*', '')}"]`;
+                    } else if (attributeValue.startsWith('^')) {
+                        selector += `[${attribute}^="${attributeValue.substring(1)}"]`;
+                    } else if (attributeValue.endsWith('$')) {
+                        selector += `[${attribute}$="${attributeValue.slice(0, -1)}"]`;
+                    } else {
+                        selector += `[${attribute}="${attributeValue}"]`;
+                    }
+                } else {
+                    selector += `[${attribute}]`;
+                }
+            }
+
+            // If nothing is selected, show placeholder
+            if (!selector.trim()) {
+                selector = 'Start building your selector above';
+            }
+
+            document.getElementById('generatedSelector').textContent = selector;
+        }
+
+        function clearField(fieldId) {
+            document.getElementById(fieldId).value = '';
+            updateSelector();
+        }
+
+        function copySelector() {
+            const selector = document.getElementById('generatedSelector').textContent;
+            if (selector !== 'Start building your selector above') {
+                navigator.clipboard.writeText(selector).then(() => {
+                    const btn = event.target;
+                    const originalText = btn.textContent;
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                    }, 2000);
+                });
+            }
+        }
+
+        function testSelector() {
+            const selector = document.getElementById('generatedSelector').textContent;
+            const url = document.getElementById('testUrl').value.trim();
+
+            if (selector === 'Start building your selector above') {
+                alert('Please build a selector first');
+                return;
+            }
+
+            if (!url) {
+                alert('Please enter a URL to test');
+                return;
+            }
+
+            // Redirect to main scraper with the selector
+            const params = new URLSearchParams({
+                url: url,
+                selector: selector,
+                multiple: 'true'
+            });
+
+            window.location.href = `/?${params.toString()}`;
+        }
+
+        function useExample(selector) {
+            document.getElementById('generatedSelector').textContent = selector;
+        }
+
+        function goBack() {
+            window.location.href = '/';
+        }
+
+        // Populate examples
+        function populateExamples() {
+            const examplesContainer = document.getElementById('examples');
+            examples.forEach(category => {
+                const card = document.createElement('div');
+                card.className = 'example-card';
+                
+                const title = document.createElement('div');
+                title.className = 'example-title';
+                title.textContent = category.title;
+                card.appendChild(title);
+
+                category.selectors.forEach(example => {
+                    const selectorDiv = document.createElement('div');
+                    selectorDiv.className = 'example-selector';
+                    selectorDiv.textContent = example.selector;
+                    selectorDiv.onclick = () => useExample(example.selector);
+                    card.appendChild(selectorDiv);
+
+                    const description = document.createElement('div');
+                    description.className = 'example-description';
+                    description.textContent = example.description;
+                    card.appendChild(description);
+                });
+
+                examplesContainer.appendChild(card);
+            });
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            populateExamples();
+            
+            // Load from URL params if provided
+            const params = new URLSearchParams(window.location.search);
+            const url = params.get('url');
+            if (url) {
+                document.getElementById('testUrl').value = url;
+            }
+        });
+    </script>
+</body>
+</html>

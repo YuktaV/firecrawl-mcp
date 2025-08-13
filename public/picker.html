@@ -289,17 +289,110 @@
             document.getElementById('overlay').style.display = 'flex';
             document.getElementById('selectorInfo').style.display = 'none';
             
-            // Use a proxy service to load the page (to avoid CORS issues)
-            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+            // Try different proxy services
+            const proxies = [
+                `https://corsproxy.io/?${encodeURIComponent(url)}`,
+                `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+                `https://cors-anywhere.herokuapp.com/${url}`,
+                // Fallback: use our own scraping service to get HTML
+                `/v0/scrape`
+            ];
             
-            const iframe = document.getElementById('previewIframe');
-            iframe.onload = function() {
+            tryProxies(proxies, url, 0);
+        }
+
+        function tryProxies(proxies, originalUrl, index) {
+            if (index >= proxies.length) {
                 document.getElementById('overlay').style.display = 'none';
-                document.getElementById('pickModeBtn').disabled = false;
-                injectPickerScript();
+                alert('Unable to load this page due to security restrictions. This happens with many modern websites. Try using the manual CSS selector approach instead.');
+                return;
+            }
+
+            const iframe = document.getElementById('previewIframe');
+            
+            iframe.onload = function() {
+                // Check if iframe actually loaded content
+                setTimeout(() => {
+                    try {
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        if (iframeDoc.body && iframeDoc.body.innerHTML.trim()) {
+                            document.getElementById('overlay').style.display = 'none';
+                            document.getElementById('pickModeBtn').disabled = false;
+                            injectPickerScript();
+                            console.log(`Successfully loaded using proxy ${index + 1}`);
+                        } else {
+                            console.log(`Proxy ${index + 1} failed, trying next...`);
+                            tryProxies(proxies, originalUrl, index + 1);
+                        }
+                    } catch (error) {
+                        console.log(`Proxy ${index + 1} failed with error:`, error);
+                        if (index === proxies.length - 1) {
+                            // Last attempt: use our scraping service
+                            loadViaScrapingService(originalUrl);
+                        } else {
+                            tryProxies(proxies, originalUrl, index + 1);
+                        }
+                    }
+                }, 1000);
+            };
+
+            iframe.onerror = function() {
+                console.log(`Proxy ${index + 1} failed to load, trying next...`);
+                tryProxies(proxies, originalUrl, index + 1);
             };
             
-            iframe.src = proxyUrl;
+            if (index < proxies.length - 1) {
+                iframe.src = proxies[index];
+            } else {
+                // Last attempt handled separately
+                loadViaScrapingService(originalUrl);
+            }
+        }
+
+        async function loadViaScrapingService(url) {
+            try {
+                console.log('Trying scraping service fallback...');
+                const response = await fetch('/v0/scrape', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+
+                const data = await response.json();
+                
+                if (data.success && data.data.html) {
+                    // Create a data URL with the HTML content
+                    const htmlContent = `
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <title>${data.data.title || 'Scraped Page'}</title>
+                            <base href="${url}">
+                        </head>
+                        <body>
+                            ${data.data.html}
+                        </body>
+                        </html>
+                    `;
+                    
+                    const iframe = document.getElementById('previewIframe');
+                    iframe.srcdoc = htmlContent;
+                    
+                    iframe.onload = function() {
+                        document.getElementById('overlay').style.display = 'none';
+                        document.getElementById('pickModeBtn').disabled = false;
+                        setTimeout(() => injectPickerScript(), 500);
+                    };
+                    
+                    console.log('Successfully loaded via scraping service');
+                } else {
+                    throw new Error('Scraping service failed');
+                }
+            } catch (error) {
+                console.error('All loading methods failed:', error);
+                document.getElementById('overlay').style.display = 'none';
+                alert('Unable to load this page. Many websites block loading in frames for security. Please use the manual CSS selector approach in the main scraper.');
+            }
         }
 
         function injectPickerScript() {
