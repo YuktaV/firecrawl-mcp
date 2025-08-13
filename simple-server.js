@@ -36,7 +36,7 @@ app.post('/v0/scrape', async (req, res) => {
   let browser;
   
   try {
-    const { url } = req.body;
+    const { url, selector, waitForSelector, multiple = false } = req.body;
     
     if (!url) {
       return res.status(400).json({ 
@@ -46,6 +46,9 @@ app.post('/v0/scrape', async (req, res) => {
     }
 
     console.log(`Scraping URL: ${url}`);
+    if (selector) {
+      console.log(`Using selector: ${selector}`);
+    }
 
     // Launch Puppeteer
     browser = await puppeteer.launch({
@@ -70,28 +73,77 @@ app.post('/v0/scrape', async (req, res) => {
       timeout: 30000 
     });
 
+    // Wait for specific selector if provided
+    if (waitForSelector) {
+      try {
+        await page.waitForSelector(waitForSelector, { timeout: 10000 });
+      } catch (e) {
+        console.log(`Selector ${waitForSelector} not found, continuing...`);
+      }
+    }
+
     // Get page content
-    const content = await page.evaluate(() => {
-      // Remove script and style elements
+    const content = await page.evaluate((selector, multiple) => {
+      // Remove script and style elements from the page
       const scripts = document.querySelectorAll('script, style, noscript');
       scripts.forEach(el => el.remove());
       
-      // Get title
+      // Get title and description
       const title = document.title;
-      
-      // Get meta description
       const metaDesc = document.querySelector('meta[name="description"]');
       const description = metaDesc ? metaDesc.getAttribute('content') : '';
       
-      // Get main content
-      const body = document.body.innerHTML;
+      let html;
+      let selectedElements = null;
+      
+      if (selector) {
+        // If selector is provided, get only that content
+        if (multiple) {
+          // Get all matching elements
+          const elements = document.querySelectorAll(selector);
+          if (elements.length > 0) {
+            selectedElements = Array.from(elements).map(el => ({
+              text: el.textContent.trim(),
+              html: el.innerHTML,
+              attributes: Array.from(el.attributes).reduce((acc, attr) => {
+                acc[attr.name] = attr.value;
+                return acc;
+              }, {})
+            }));
+            html = Array.from(elements).map(el => el.outerHTML).join('\n');
+          } else {
+            html = '';
+          }
+        } else {
+          // Get single element
+          const element = document.querySelector(selector);
+          if (element) {
+            html = element.innerHTML;
+            selectedElements = {
+              text: element.textContent.trim(),
+              html: element.innerHTML,
+              attributes: Array.from(element.attributes).reduce((acc, attr) => {
+                acc[attr.name] = attr.value;
+                return acc;
+              }, {})
+            };
+          } else {
+            html = '';
+          }
+        }
+      } else {
+        // No selector, get entire body
+        html = document.body.innerHTML;
+      }
       
       return {
         title,
         description,
-        html: body
+        html,
+        selectedElements,
+        selectorUsed: selector || null
       };
-    });
+    }, selector, multiple);
 
     // Convert HTML to Markdown
     const markdown = turndownService.turndown(content.html);
@@ -107,10 +159,15 @@ app.post('/v0/scrape', async (req, res) => {
         title: content.title,
         description: content.description,
         markdown,
+        selectedElements: content.selectedElements,
+        selectorUsed: content.selectorUsed,
         metadata: {
           sourceURL: url,
           pageStatusCode: 200,
-          pageError: null
+          pageError: null,
+          elementsFound: content.selectedElements ? 
+            (Array.isArray(content.selectedElements) ? content.selectedElements.length : 1) : 
+            null
         }
       }
     });

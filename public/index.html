@@ -265,6 +265,38 @@
                 <button id="scrapeBtn" onclick="scrapeUrl()">Scrape</button>
             </div>
 
+            <div class="advanced-options" style="margin-bottom: 20px; padding: 15px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <details>
+                    <summary style="cursor: pointer; font-weight: 600; color: #475569; margin-bottom: 10px;">Advanced Options</summary>
+                    
+                    <div style="display: grid; gap: 15px; margin-top: 15px;">
+                        <div>
+                            <label for="selectorInput" style="display: block; font-size: 14px; color: #374151; margin-bottom: 5px;">CSS Selector (optional)</label>
+                            <input type="text" id="selectorInput" placeholder="e.g., .article-content, #main, .post-title" 
+                                   style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;">
+                            <small style="color: #6b7280; font-size: 12px;">Extract only elements matching this CSS selector</small>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div>
+                                <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #374151;">
+                                    <input type="checkbox" id="multipleElements" style="margin: 0;">
+                                    Multiple Elements
+                                </label>
+                                <small style="color: #6b7280; font-size: 12px;">Get all matching elements instead of just the first</small>
+                            </div>
+
+                            <div>
+                                <label for="waitSelector" style="display: block; font-size: 14px; color: #374151; margin-bottom: 5px;">Wait for Selector</label>
+                                <input type="text" id="waitSelector" placeholder="e.g., .dynamic-content" 
+                                       style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;">
+                                <small style="color: #6b7280; font-size: 12px;">Wait for this element to appear before scraping</small>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+            </div>
+
             <div class="examples">
                 <p style="color: #64748b; margin-bottom: 10px;">Try these examples:</p>
                 <div class="example-links">
@@ -346,6 +378,11 @@
                 return;
             }
 
+            // Get advanced options
+            const selector = document.getElementById('selectorInput').value.trim() || null;
+            const multiple = document.getElementById('multipleElements').checked;
+            const waitForSelector = document.getElementById('waitSelector').value.trim() || null;
+
             // Clear previous messages
             document.getElementById('errorMsg').innerHTML = '';
             document.getElementById('successMsg').innerHTML = '';
@@ -355,13 +392,18 @@
             document.getElementById('loader').classList.add('active');
             document.getElementById('scrapeBtn').disabled = true;
 
+            const requestBody = { url };
+            if (selector) requestBody.selector = selector;
+            if (multiple) requestBody.multiple = multiple;
+            if (waitForSelector) requestBody.waitForSelector = waitForSelector;
+
             try {
                 const response = await fetch('/v0/scrape', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ url })
+                    body: JSON.stringify(requestBody)
                 });
 
                 const data = await response.json();
@@ -403,6 +445,18 @@
                     <div class="metadata-label">Content Length</div>
                     <div class="metadata-value">${data.markdown ? data.markdown.length + ' characters' : 'N/A'}</div>
                 </div>
+                ${data.selectorUsed ? `
+                <div class="metadata-item">
+                    <div class="metadata-label">CSS Selector Used</div>
+                    <div class="metadata-value" style="font-family: monospace; font-size: 12px;">${data.selectorUsed}</div>
+                </div>
+                ` : ''}
+                ${data.metadata?.elementsFound ? `
+                <div class="metadata-item">
+                    <div class="metadata-label">Elements Found</div>
+                    <div class="metadata-value">${data.metadata.elementsFound}</div>
+                </div>
+                ` : ''}
             `;
             document.getElementById('metadataContent').innerHTML = metadataHtml;
 
