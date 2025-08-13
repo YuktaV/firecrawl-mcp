@@ -1,6 +1,6 @@
-FROM node:18-slim
+FROM node:20-slim
 
-# Install dependencies
+# Install Chrome and dependencies
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
@@ -21,10 +21,6 @@ RUN apt-get update && apt-get install -y \
     libxdamage1 \
     libxrandr2 \
     xdg-utils \
-    git \
-    python3 \
-    make \
-    g++ \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Chrome
@@ -34,38 +30,26 @@ RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key
     && apt-get install -y google-chrome-stable \
     && rm -rf /var/lib/apt/lists/*
 
-# Set Puppeteer to use installed Chrome
+# Set Puppeteer environment
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable \
+    NODE_OPTIONS="--max-old-space-size=2048"
 
-# Clone Firecrawl repository
+# Set working directory
 WORKDIR /app
-RUN git clone https://github.com/mendableai/firecrawl.git .
 
-# Navigate to the API directory
-WORKDIR /app/apps/api
+# Copy package files
+COPY package*.json ./
 
 # Install dependencies
 RUN npm install
 
-# Build the application
-RUN npm run build || true
+# Copy application files
+COPY simple-server.js ./
+COPY .env.example .env
 
-# Create a startup script that handles the monorepo structure
-RUN echo '#!/bin/sh\n\
-echo "Starting Firecrawl API server..."\n\
-cd /app/apps/api\n\
-# Try to run the built version first\n\
-if [ -f "dist/src/index.js" ]; then\n\
-    echo "Running built version..."\n\
-    node dist/src/index.js\n\
-else\n\
-    echo "Running development version..."\n\
-    npm run start\n\
-fi' > /start.sh && chmod +x /start.sh
-
-# Expose the port
+# Expose port
 EXPOSE 3002
 
-# Use the startup script
-CMD ["/start.sh"]
+# Run the server
+CMD ["node", "simple-server.js"]

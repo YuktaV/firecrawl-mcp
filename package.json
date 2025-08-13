@@ -1,19 +1,19 @@
 {
-  "name": "firecrawl-mcp-gemini",
+  "name": "firecrawl-mcp",
   "version": "1.0.0",
-  "description": "Firecrawl MCP Server with Gemini API",
-  "main": "index.js",
+  "description": "Firecrawl MCP Server - Self Hosted",
+  "main": "simple-server.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js"
+    "start": "node simple-server.js",
+    "dev": "nodemon simple-server.js"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.1.3",
     "express": "^4.18.2",
     "dotenv": "^16.3.1",
-    "axios": "^1.6.2"
+    "puppeteer": "^21.0.0",
+    "turndown": "^7.1.2"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   }
 }
