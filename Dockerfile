@@ -1,45 +1,71 @@
-FROM node:18-alpine
+FROM node:18-slim
 
-# Install dependencies for Firecrawl
-RUN apk add --no-cache \
-    chromium \
-    nss \
-    freetype \
-    freetype-dev \
-    harfbuzz \
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    gnupg \
     ca-certificates \
-    ttf-freefont \
+    fonts-liberation \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libcups2 \
+    libdbus-1-3 \
+    libdrm2 \
+    libgbm1 \
+    libgtk-3-0 \
+    libnspr4 \
+    libnss3 \
+    libx11-xcb1 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    xdg-utils \
     git \
     python3 \
     make \
-    g++
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
 
-# Set Puppeteer to use installed Chromium
+# Install Chrome
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && echo "deb http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
+    && apt-get update \
+    && apt-get install -y google-chrome-stable \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Puppeteer to use installed Chrome
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 
-# Clone and setup Firecrawl
-WORKDIR /firecrawl
-RUN git clone https://github.com/mendableai/firecrawl.git . && \
-    ls -la
+# Clone Firecrawl repository
+WORKDIR /app
+RUN git clone https://github.com/mendableai/firecrawl.git .
 
-# Navigate to the API directory where the actual application is
-WORKDIR /firecrawl/apps/api
+# Navigate to the API directory
+WORKDIR /app/apps/api
 
 # Install dependencies
 RUN npm install
 
-# Install additional packages for Gemini support
-RUN npm install @google/generative-ai dotenv
+# Build the application
+RUN npm run build || true
 
-# Copy custom Gemini adapter
-COPY gemini-adapter.js /firecrawl/apps/api/src/lib/
+# Create a startup script that handles the monorepo structure
+RUN echo '#!/bin/sh\n\
+echo "Starting Firecrawl API server..."\n\
+cd /app/apps/api\n\
+# Try to run the built version first\n\
+if [ -f "dist/src/index.js" ]; then\n\
+    echo "Running built version..."\n\
+    node dist/src/index.js\n\
+else\n\
+    echo "Running development version..."\n\
+    npm run start\n\
+fi' > /start.sh && chmod +x /start.sh
 
-# Set working directory for runtime
-WORKDIR /firecrawl/apps/api
-
-# Expose ports
+# Expose the port
 EXPOSE 3002
 
-# Start the application with proper command
-CMD ["npm", "run", "start:production"]
+# Use the startup script
+CMD ["/start.sh"]
