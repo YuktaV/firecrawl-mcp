@@ -298,7 +298,12 @@
             </div>
 
             <div class="examples">
-                <p style="color: #64748b; margin-bottom: 10px;">Try these examples:</p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <p style="color: #64748b; margin: 0;">Try these examples:</p>
+                    <button onclick="openVisualPicker()" style="padding: 8px 16px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: 600;">
+                        🎯 Visual Picker
+                    </button>
+                </div>
                 <div class="example-links">
                     <button class="example-link" onclick="setExample('https://news.ycombinator.com')">Hacker News</button>
                     <button class="example-link" onclick="setExample('https://www.wikipedia.org')">Wikipedia</button>
@@ -349,6 +354,36 @@
 
         function setExample(url) {
             document.getElementById('urlInput').value = url;
+        }
+
+        function openVisualPicker() {
+            const currentUrl = document.getElementById('urlInput').value.trim();
+            if (currentUrl) {
+                window.open(`/picker.html?url=${encodeURIComponent(currentUrl)}`, '_blank');
+            } else {
+                window.open('/picker.html', '_blank');
+            }
+        }
+
+        // Load parameters from URL if coming from visual picker
+        function loadFromParams() {
+            const params = new URLSearchParams(window.location.search);
+            const url = params.get('url');
+            const selector = params.get('selector');
+            const multiple = params.get('multiple');
+
+            if (url) {
+                document.getElementById('urlInput').value = url;
+            }
+            if (selector) {
+                document.getElementById('selectorInput').value = selector;
+                // Open advanced options
+                const details = document.querySelector('details');
+                if (details) details.open = true;
+            }
+            if (multiple === 'true') {
+                document.getElementById('multipleElements').checked = true;
+            }
         }
 
         function showTab(tab) {
@@ -499,6 +534,9 @@
                 scrapeUrl();
             }
         });
+
+        // Load parameters on page load
+        window.addEventListener('load', loadFromParams);
     </script>
 </body>
 </html>

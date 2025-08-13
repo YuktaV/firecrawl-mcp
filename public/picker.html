@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Element Picker - Firecrawl</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .controls {
+            background: white;
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .controls input[type="url"] {
+            flex: 1;
+            min-width: 300px;
+            padding: 10px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .controls button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .controls button:hover {
+            background: #5a67d8;
+        }
+
+        .controls button:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 160px);
+        }
+
+        .sidebar {
+            width: 350px;
+            background: white;
+            border-right: 1px solid #e2e8f0;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .preview-container {
+            flex: 1;
+            position: relative;
+            background: white;
+        }
+
+        .preview-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .selector-info {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .selector-label {
+            font-size: 12px;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .selector-value {
+            font-family: 'Monaco', monospace;
+            font-size: 14px;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            word-break: break-all;
+        }
+
+        .similar-elements {
+            margin-top: 20px;
+        }
+
+        .element-preview {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+
+        .element-count {
+            color: #059669;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .scrape-button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .scrape-button:hover {
+            transform: translateY(-2px);
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            z-index: 1000;
+        }
+
+        .loading {
+            text-align: center;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .instructions {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .instructions h3 {
+            color: #92400e;
+            margin-bottom: 10px;
+        }
+
+        .instructions ul {
+            color: #92400e;
+            margin-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎯 Visual Element Picker</h1>
+        <p>Point and click to select elements for scraping</p>
+    </div>
+
+    <div class="controls">
+        <input type="url" id="urlInput" placeholder="Enter URL to preview and select elements from">
+        <button id="loadBtn" onclick="loadPreview()">Load Preview</button>
+        <button id="pickModeBtn" onclick="togglePickMode()" disabled>Enable Picking</button>
+        <button id="backBtn" onclick="goBack()">← Back to Scraper</button>
+    </div>
+
+    <div class="main-content">
+        <div class="sidebar">
+            <div class="instructions">
+                <h3>How to use:</h3>
+                <ul>
+                    <li>Enter a URL and click "Load Preview"</li>
+                    <li>Click "Enable Picking" to start selecting</li>
+                    <li>Click on any element in the preview</li>
+                    <li>See the CSS selector auto-generated</li>
+                    <li>View all similar elements highlighted</li>
+                    <li>Click "Scrape Selected" to extract content</li>
+                </ul>
+            </div>
+
+            <div id="selectorInfo" style="display: none;">
+                <div class="selector-info">
+                    <div class="selector-label">Generated CSS Selector</div>
+                    <div class="selector-value" id="generatedSelector"></div>
+                </div>
+
+                <div class="similar-elements">
+                    <div class="element-count" id="elementCount"></div>
+                    <div id="elementPreviews"></div>
+                </div>
+
+                <button class="scrape-button" onclick="scrapeWithSelector()">
+                    🔥 Scrape Selected Elements
+                </button>
+            </div>
+        </div>
+
+        <div class="preview-container">
+            <div class="overlay" id="overlay">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>Loading preview...</div>
+                </div>
+            </div>
+            
+            <iframe id="previewIframe" class="preview-iframe" sandbox="allow-same-origin allow-scripts"></iframe>
+        </div>
+    </div>
+
+    <script>
+        let pickingMode = false;
+        let currentUrl = '';
+        let selectedSelector = '';
+
+        function loadPreview() {
+            const url = document.getElementById('urlInput').value.trim();
+            if (!url) {
+                alert('Please enter a URL');
+                return;
+            }
+
+            try {
+                new URL(url);
+            } catch {
+                alert('Please enter a valid URL');
+                return;
+            }
+
+            currentUrl = url;
+            document.getElementById('overlay').style.display = 'flex';
+            document.getElementById('selectorInfo').style.display = 'none';
+            
+            // Use a proxy service to load the page (to avoid CORS issues)
+            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+            
+            const iframe = document.getElementById('previewIframe');
+            iframe.onload = function() {
+                document.getElementById('overlay').style.display = 'none';
+                document.getElementById('pickModeBtn').disabled = false;
+                injectPickerScript();
+            };
+            
+            iframe.src = proxyUrl;
+        }
+
+        function injectPickerScript() {
+            const iframe = document.getElementById('previewIframe');
+            try {
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                
+                // Inject CSS for highlighting
+                const style = iframeDoc.createElement('style');
+                style.textContent = `
+                    .picker-highlight {
+                        outline: 3px solid #10b981 !important;
+                        outline-offset: 2px !important;
+                        cursor: pointer !important;
+                    }
+                    .picker-similar {
+                        outline: 2px solid #3b82f6 !important;
+                        outline-offset: 1px !important;
+                        background: rgba(59, 130, 246, 0.1) !important;
+                    }
+                `;
+                iframeDoc.head.appendChild(style);
+                
+                console.log('Picker script injected successfully');
+            } catch (error) {
+                console.error('Failed to inject picker script:', error);
+                alert('Cannot access this page due to security restrictions. Try a different URL.');
+            }
+        }
+
+        function togglePickMode() {
+            pickingMode = !pickingMode;
+            const btn = document.getElementById('pickModeBtn');
+            
+            if (pickingMode) {
+                btn.textContent = 'Disable Picking';
+                btn.style.background = '#ef4444';
+                enablePicking();
+            } else {
+                btn.textContent = 'Enable Picking';
+                btn.style.background = '#667eea';
+                disablePicking();
+            }
+        }
+
+        function enablePicking() {
+            const iframe = document.getElementById('previewIframe');
+            try {
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                
+                // Add click listeners to all elements
+                const elements = iframeDoc.querySelectorAll('*');
+                elements.forEach(element => {
+                    element.addEventListener('mouseover', highlightElement);
+                    element.addEventListener('mouseout', removeHighlight);
+                    element.addEventListener('click', selectElement);
+                });
+                
+                // Prevent default link behavior
+                const links = iframeDoc.querySelectorAll('a');
+                links.forEach(link => {
+                    link.addEventListener('click', e => e.preventDefault());
+                });
+                
+                console.log('Picking mode enabled');
+            } catch (error) {
+                console.error('Failed to enable picking:', error);
+            }
+        }
+
+        function disablePicking() {
+            const iframe = document.getElementById('previewIframe');
+            try {
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                
+                // Remove all highlights
+                const highlighted = iframeDoc.querySelectorAll('.picker-highlight, .picker-similar');
+                highlighted.forEach(el => {
+                    el.classList.remove('picker-highlight', 'picker-similar');
+                });
+                
+                console.log('Picking mode disabled');
+            } catch (error) {
+                console.error('Failed to disable picking:', error);
+            }
+        }
+
+        function highlightElement(event) {
+            if (!pickingMode) return;
+            event.target.classList.add('picker-highlight');
+            event.stopPropagation();
+        }
+
+        function removeHighlight(event) {
+            if (!pickingMode) return;
+            event.target.classList.remove('picker-highlight');
+            event.stopPropagation();
+        }
+
+        function selectElement(event) {
+            if (!pickingMode) return;
+            
+            event.preventDefault();
+            event.stopPropagation();
+            
+            const element = event.target;
+            const selector = generateSelector(element);
+            
+            selectedSelector = selector;
+            document.getElementById('generatedSelector').textContent = selector;
+            document.getElementById('selectorInfo').style.display = 'block';
+            
+            // Find and highlight similar elements
+            highlightSimilarElements(element, selector);
+            
+            // Show preview of content
+            showElementPreviews(selector);
+        }
+
+        function generateSelector(element) {
+            // Simple selector generation - can be improved
+            if (element.id) {
+                return '#' + element.id;
+            }
+            
+            if (element.className) {
+                const classes = element.className.split(' ').filter(c => c.length > 0);
+                if (classes.length > 0) {
+                    return '.' + classes[0];
+                }
+            }
+            
+            return element.tagName.toLowerCase();
+        }
+
+        function highlightSimilarElements(originalElement, selector) {
+            const iframe = document.getElementById('previewIframe');
+            try {
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                
+                // Clear previous highlights
+                const previousHighlights = iframeDoc.querySelectorAll('.picker-similar');
+                previousHighlights.forEach(el => el.classList.remove('picker-similar'));
+                
+                // Highlight similar elements
+                const similarElements = iframeDoc.querySelectorAll(selector);
+                similarElements.forEach(el => {
+                    if (el !== originalElement) {
+                        el.classList.add('picker-similar');
+                    }
+                });
+                
+                document.getElementById('elementCount').textContent = 
+                    `Found ${similarElements.length} similar element(s)`;
+                    
+            } catch (error) {
+                console.error('Failed to highlight similar elements:', error);
+            }
+        }
+
+        function showElementPreviews(selector) {
+            const iframe = document.getElementById('previewIframe');
+            try {
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                const elements = iframeDoc.querySelectorAll(selector);
+                
+                const previewsContainer = document.getElementById('elementPreviews');
+                previewsContainer.innerHTML = '';
+                
+                // Show first few elements as preview
+                const previewCount = Math.min(5, elements.length);
+                for (let i = 0; i < previewCount; i++) {
+                    const element = elements[i];
+                    const preview = document.createElement('div');
+                    preview.className = 'element-preview';
+                    preview.textContent = element.textContent.trim().substring(0, 150) + 
+                                        (element.textContent.length > 150 ? '...' : '');
+                    previewsContainer.appendChild(preview);
+                }
+                
+                if (elements.length > previewCount) {
+                    const more = document.createElement('div');
+                    more.style.textAlign = 'center';
+                    more.style.color = '#64748b';
+                    more.style.fontSize = '14px';
+                    more.style.marginTop = '10px';
+                    more.textContent = `... and ${elements.length - previewCount} more`;
+                    previewsContainer.appendChild(more);
+                }
+                
+            } catch (error) {
+                console.error('Failed to show previews:', error);
+            }
+        }
+
+        function scrapeWithSelector() {
+            if (!selectedSelector || !currentUrl) {
+                alert('Please select an element first');
+                return;
+            }
+            
+            // Redirect to main scraper with pre-filled selector
+            const params = new URLSearchParams({
+                url: currentUrl,
+                selector: selectedSelector,
+                multiple: 'true'
+            });
+            
+            window.location.href = `/?${params.toString()}`;
+        }
+
+        function goBack() {
+            window.location.href = '/';
+        }
+
+        // Load URL from query params if provided
+        window.addEventListener('load', () => {
+            const params = new URLSearchParams(window.location.search);
+            const url = params.get('url');
+            if (url) {
+                document.getElementById('urlInput').value = url;
+            }
+        });
+    </script>
+</body>
+</html>
